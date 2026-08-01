@@ -9,6 +9,7 @@
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  services.mullvad-vpn.enable = true;
   networking.networkmanager.enable = true;
   networking.hostName = "roux";
   time.timeZone = "Australia/Sydney";
@@ -58,8 +59,27 @@
     isNormalUser = true;
     extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
     packages = with pkgs; [
-      tree
     ];
+  };
+
+  programs.bash = {
+    enableLsColors = true;
+    completion.enable = true;
+    promptInit = ''
+  if [ "$UID" -eq 0 ]; then
+    PS1="\[\e[1;31m\]\w\[\e[0m\] # "
+  else
+    PS1="\[\e[1;32m\]\w\[\e[0m\] \$ "
+  fi
+'';
+    shellAliases = {
+	rebuild = "sudo nixos-rebuild switch";
+	nixedit = "sudoedit /etc/nixos/configuration.nix";
+	ff = "clear;echo;fastfetch";
+	c = "clear";
+	nixclean = "sudo nix-collect-garbage";
+	update = "cd /etc/nixos;sudo nix flake update;sudo nixos-rebuild switch --flake; cd -";
+	};
   };
 
   programs.steam = {
@@ -105,20 +125,23 @@
     wget
     git
     fastfetch
-    btop
+    qbittorrent
     rofi
     alacritty
     swaybg
+    pywal16
     pavucontrol
     htop
-    xclip
+    wayfreeze
     filezilla
     emacs-gtk
     gearlever
+    mullvad-vpn
     gnome-themes-extra
     dconf
     supersonic
     thunar-archive-plugin
+    tree
     thunar-volman
     grim
     slurp
