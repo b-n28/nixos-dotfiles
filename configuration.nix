@@ -121,6 +121,11 @@
     pulse.enable = true;
   };
 
+  hardware.graphics = {
+  enable = true;
+  enable32Bit = true;
+  };
+
   environment.systemPackages = with pkgs; [
     wget
     git
@@ -152,6 +157,7 @@
     pulseaudio
     prismlauncher
     mullvad-vpn
+    lutris
   ];
 
   systemd.user.services.polkit-gnome-authentication-agent-1 = {
