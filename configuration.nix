@@ -1,10 +1,22 @@
 { config, lib, pkgs, inputs, ... }:
 
+let
+  stable = import inputs.nixpkgs-stable {
+    inherit (pkgs.stdenv.hostPlatform) system;
+    config.allowUnfree = true;
+  };
+in
+
 {
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
     ];
+
+  nixpkgs.overlays = [
+    (final: prev: { xdg-desktop-portal = stable.xdg-desktop-portal; })
+  ];
+
   nixpkgs.config.allowUnfree = true;
 
   boot.loader.systemd-boot.enable = true;
@@ -14,6 +26,9 @@
   networking.hostName = "roux";
   time.timeZone = "Australia/Sydney";
 
+  networking.hosts = {
+  "192.168.0.129" = [ "vault.bornaja.xyz" ];
+  };
   # environment variables
   environment.sessionVariables = {
     EDITOR = "nvim";
@@ -44,6 +59,12 @@
     }];
   };
 
+  qt = {
+    enable = true;
+    platformTheme = "gnome";
+    style = "adwaita-dark";
+  };
+
   environment.sessionVariables.GTK_THEME = "Adwaita:dark";
   services.gnome.gnome-keyring.enable = true;
   security.pam.services.login.enableGnomeKeyring = true;
@@ -51,15 +72,33 @@
   programs.hyprland = {
     enable = true;
     xwayland.enable = true;
+    package = stable.hyprland;
   };
+
   programs.waybar.enable = true;
   programs.firefox.enable = true;
+  programs.obs-studio = {
+    enable = true;
+    plugins = with pkgs.obs-studio-plugins; [
+	wlrobs
+	obs-backgroundremoval
+	obs-pipewire-audio-capture
+	obs-vaapi
+	obs-vkcapture
+	obs-gstreamer
+	];
+  };
 
   users.users.borna = {
     isNormalUser = true;
     extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
     packages = with pkgs; [
     ];
+  };
+
+  programs.fzf = {
+    keybindings = true;
+    fuzzyCompletion = true;
   };
 
   programs.bash = {
@@ -76,6 +115,7 @@
 	rebuild = "sudo nixos-rebuild switch";
 	nixedit = "sudoedit /etc/nixos/configuration.nix";
 	ff = "clear;echo;fastfetch";
+	mkdir = "mkdir -pv";
 	c = "clear";
 	nixclean = "sudo nix-collect-garbage";
 	update = "cd /etc/nixos;sudo nix flake update;sudo nixos-rebuild switch --flake; cd -";
@@ -85,15 +125,16 @@
   programs.steam = {
   enable = true;
   };
-  # List packages installed in system profile.
-  # You can use https://search.nixos.org/ to find more packages (and options).
+
   services.flatpak.enable = true;
   xdg.portal = {
-    enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-    config.common.default = "gtk";
-  };
-
+      enable = true;
+      xdgOpenUsePortal = true;
+      config = {
+        common.default = "gtk";
+        hyprland.default = [ "hyprland" "gtk" ];
+      };
+    };
   # thunar config
   programs.thunar.enable = true;
   programs.xfconf.enable = true;
@@ -127,7 +168,9 @@
   };
 
   environment.systemPackages = with pkgs; [
+    tree
     wget
+    glib
     git
     fastfetch
     qbittorrent
@@ -139,6 +182,7 @@
     htop
     wayfreeze
     filezilla
+    libreoffice
     emacs-gtk
     gearlever
     mullvad-vpn
@@ -146,7 +190,6 @@
     dconf
     supersonic
     thunar-archive-plugin
-    tree
     thunar-volman
     grim
     slurp
@@ -154,10 +197,13 @@
     wl-clip-persist
     papirus-icon-theme
     bibata-cursors
+    stremio-linux-shell
     pulseaudio
     prismlauncher
     mullvad-vpn
     lutris
+    mpv
+    swayimg
   ];
 
   systemd.user.services.polkit-gnome-authentication-agent-1 = {
@@ -173,6 +219,21 @@
       TimeoutStopSec = 10;
     };
   };
+
+  systemd.user.services = {
+      xdg-desktop-portal = {
+        overrideStrategy = "asDropin";
+        unitConfig.Requisite = [ "" ];
+      };
+      xdg-desktop-portal-hyprland = {
+        overrideStrategy = "asDropin";
+        unitConfig.Requisite = [ "" ];
+      };
+      xdg-desktop-portal-gtk = {
+        overrideStrategy = "asDropin";
+        unitConfig.Requisite = [ "" ];
+      };
+    };
 
   system.stateVersion = "26.05"; # Did you read the comment?
 }
